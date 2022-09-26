@@ -11,7 +11,7 @@ options.network = "testnet-magic 1097911063"
 
 const cardanocliJs = new CardanocliJs(options);
 
-const absolutePathPrivate = path.resolve('/root/cardanocli-js-cardano-server/keys/privatekey.pem');
+const absolutePathPrivate = path.resolve('/root/cardano-nodejs/keys/privatekey.pem');
 const privateKey = fs.readFileSync(absolutePathPrivate, 'utf8')
 
 exports.queryProtocolParameters = async (req, res) => {
@@ -140,50 +140,64 @@ const getUTXOlist = (address, amount) => {
 }
 
 exports.transactionCalculateMinFee = async (req, res) => {
-    var { address, amount, from_address, txOutCount } = req.body
-    const txIn = getUTXOlist(from_address, amount)
+    try {
+        var { address, amount, from_address, txOutCount, admin, admin_address, admin_amount } = req.body
+        const txIn = getUTXOlist(from_address, amount)
 
-    var txOut = []
-    const txOut1 = {
-        address: address,
-        value: { "lovelace": amount }
-    }
-    txOut.push(txOut1)
-    if (txOutCount === 2) {
-        const txOut2 = {
-            address: from_address,
-            value: { "lovelace": 0 }
+        var txOut = []
+        const txOut1 = {
+            address: address,
+            value: { "lovelace": amount }
         }
-        txOut.push(txOut2)
-    }
+        txOut.push(txOut1)
 
-    const options = {
-        txIn: txIn,
-        txOut: txOut,
-        fee: 0
-    }
-
-    const buildraw = cardanocliJs.transactionBuildRaw(options)
-
-    const feeOptions = {
-        txBody: buildraw,
-        txIn: txIn,
-        txOut: txOut,
-        witnessCount: 1
-    }
-    const fee = cardanocliJs.transactionCalculateMinFee(feeOptions)
-
-    res.send({
-        code: 200,
-        data: {
-            lovelace: fee
+        if (txOutCount === 2) {
+            const txOut2 = {
+                address: from_address,
+                value: { "lovelace": 0 }
+            }
+            txOut.push(txOut2)
         }
-    })
+
+        if (admin) {
+            const txOut3 = {
+                address: admin_address,
+                value: { "lovelace": 0 }
+            }
+            txOut.push(txOut3)
+        }
+
+        const options = {
+            txIn: txIn,
+            txOut: txOut,
+            fee: 0
+        }
+        console.log(options, "options")
+        const buildraw = cardanocliJs.transactionBuildRaw(options)
+
+        const feeOptions = {
+            txBody: buildraw,
+            txIn: txIn,
+            txOut: txOut,
+            witnessCount: 1
+        }
+        const fee = cardanocliJs.transactionCalculateMinFee(feeOptions)
+
+        res.send({
+            code: 200,
+            data: {
+                lovelace: fee
+            }
+        })
+    } catch (err) {
+        console.log(err)
+    }
 }
 
 
 exports.submittx = (req, res) => {
-    var { address, amount, from_address, txOutCount, fee, account_name } = req.body
+    console.log("submit")
+    var { address, amount, from_address, txOutCount, fee, account_name, txOutExt } = req.body
 
     const txIn = getUTXOlist(from_address, amount)
 
@@ -191,12 +205,13 @@ exports.submittx = (req, res) => {
     txIn.forEach(utxo => {
         totalLovelace += utxo.value.lovelace;
     })
-
+    console.log(totalLovelace, "totalLovelace")
     var txOut = []
     const txOut1 = {
         address: address,
         value: { "lovelace": amount }
     }
+    console.log(txOut1)
     txOut.push(txOut1)
 
     if (txOutCount === 2) {
@@ -206,9 +221,15 @@ exports.submittx = (req, res) => {
             address: from_address,
             value: { "lovelace": returnamount }
         }
+        console.log(txOut2)
         txOut.push(txOut2)
     }
-    console.log(txIn, txOut, fee)
+
+    if (txOutExt) {
+        txOut = txOutExt
+    }
+    console.log({ txIn: txIn, txOut: txOut, fee: fee }, "asdadasdad")
+
     const buildraw = cardanocliJs.transactionBuildRaw({ txIn: txIn, txOut: txOut, fee: fee })
 
     let private_key = new NodeRSA(privateKey, 'pkcs8-private');

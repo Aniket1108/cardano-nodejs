@@ -4,7 +4,7 @@ const router = express.Router()
 const cardano = require('../api/cardano.js')
 
 router.post('/queryUTXO', cardano.queryUTXO)
-// router.post('/getUTXOlist', cardano.getUTXOlist)
+router.post('/getUTXOlist', cardano.getUTXOlist)
 router.get('/queryProtocolParameters', cardano.queryProtocolParameters)
 router.get('/queryTip', cardano.queryTip)
 router.post('/createWallet', cardano.createWallet)
