@@ -196,8 +196,7 @@ exports.transactionCalculateMinFee = async (req, res) => {
 
 
 exports.submittx = (req, res) => {
-    console.log("submit")
-    var { address, amount, from_address, txOutCount, fee, account_name, txOutExt } = req.body
+    var { address, amount, from_address, txOutCount, fee, account_name, txOutExt, admin, adminAddress, adminAmount } = req.body
 
     const txIn = getUTXOlist(from_address, amount)
 
@@ -205,23 +204,33 @@ exports.submittx = (req, res) => {
     txIn.forEach(utxo => {
         totalLovelace += utxo.value.lovelace;
     })
-    console.log(totalLovelace, "totalLovelace")
+
     var txOut = []
     const txOut1 = {
         address: address,
         value: { "lovelace": amount }
     }
-    console.log(txOut1)
     txOut.push(txOut1)
 
+    var adminAmt = 0
+    if (admin) {
+        adminAmt = adminAmount 
+        const txAdmin = {
+            address: adminAddress,
+            value: { "lovelace": adminAmount }
+        }
+
+        txOut.push(txAdmin)
+    }
+
     if (txOutCount === 2) {
-        const returnamount = totalLovelace - fee - amount
+        const returnamount = totalLovelace - fee - amount - adminAmt
 
         const txOut2 = {
             address: from_address,
             value: { "lovelace": returnamount }
         }
-        console.log(txOut2)
+
         txOut.push(txOut2)
     }
 
